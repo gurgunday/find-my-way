@@ -32,7 +32,7 @@ const deepEqual = require('fast-deep-equal')
 const { prettyPrintTree } = require('./lib/pretty-print')
 const { StaticNode, NODE_TYPES } = require('./lib/node')
 const Constrainer = require('./lib/constrainer')
-const httpMethods = require('./lib/http-methods')
+const { httpMethods, httpMethodsSet } = require('./lib/http-methods')
 const httpMethodStrategy = require('./lib/strategies/http-method')
 const { safeDecodeURI, safeDecodeURIComponent } = require('./lib/url-sanitizer')
 
@@ -105,7 +105,7 @@ Router.prototype.on = function on (method, path, opts, handler, store) {
   // path validation
   assert(typeof path === 'string', 'Path should be a string')
   assert(path.length > 0, 'The path could not be empty')
-  assert(path[0] === '/' || path[0] === '*', 'The first character of a path should be `/` or `*`')
+  assert(path.charCodeAt(0) === 47 || path.charCodeAt(0) === 42, 'The first character of a path should be `/` or `*`')
   // handler validation
   assert(typeof handler === 'function', 'Handler should be a function')
 
@@ -135,7 +135,7 @@ Router.prototype.on = function on (method, path, opts, handler, store) {
   const methods = Array.isArray(method) ? method : [method]
   for (const method of methods) {
     assert(typeof method === 'string', 'Method should be a string')
-    assert(httpMethods.includes(method), `Method '${method}' is not an http method.`)
+    assert(httpMethodsSet.has(method), `Method '${method}' is not an http method.`)
     this._on(method, path, opts, handler, store, route)
   }
 }
@@ -492,7 +492,7 @@ Router.prototype.off = function off (method, path, constraints) {
 Router.prototype._off = function _off (method, path, constraints) {
   // method validation
   assert(typeof method === 'string', 'Method should be a string')
-  assert(httpMethods.includes(method), `Method '${method}' is not an http method.`)
+  assert(httpMethodsSet.has(method), `Method '${method}' is not an http method.`)
 
   function matcherWithoutConstraints (route) {
     return method !== route.method || path !== route.path
