@@ -241,7 +241,7 @@ test('deregister a route with multiple methods', t => {
 })
 
 test('reset a router', t => {
-  t.plan(2)
+  t.plan(5)
   const findMyWay = FindMyWay()
 
   findMyWay.on(['GET', 'POST'], '/a', () => {})
@@ -249,6 +249,12 @@ test('reset a router', t => {
 
   t.assert.ok(!findMyWay.find('GET', '/a'))
   t.assert.ok(!findMyWay.find('POST', '/a'))
+
+  const handler = () => {}
+  findMyWay.on(['GET', 'POST'], '/a', handler)
+  t.assert.equal(findMyWay.find('GET', '/a').handler, handler)
+  t.assert.equal(findMyWay.find('POST', '/a').handler, handler)
+  t.assert.throws(() => findMyWay.on('GET', '/a', handler), /already declared/)
 })
 
 test('default route', t => {

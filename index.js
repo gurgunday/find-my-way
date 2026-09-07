@@ -97,6 +97,7 @@ function Router (opts) {
   this.useSemicolonDelimiter = opts.useSemicolonDelimiter || false
 
   this.routes = []
+  this._routesByPattern = new Map()
   this.trees = Object.create(null)
   this._treeGET = null
 }
@@ -295,19 +296,25 @@ Router.prototype._on = function _on (method, path, opts, handler, store) {
     pattern = '/*'
   }
 
-  for (const existRoute of this.routes) {
+  // Different regex nodes can share a canonical pattern, so duplicate checks
+  // must consider all routes with this method and pattern, not just this node.
+  const patternKey = method + ' ' + pattern
+  let patternRoutes = this._routesByPattern.get(patternKey)
+  if (patternRoutes === undefined) {
+    patternRoutes = []
+    this._routesByPattern.set(patternKey, patternRoutes)
+  }
+
+  for (const existRoute of patternRoutes) {
     const routeConstraints = existRoute.opts.constraints || {}
-    if (
-      existRoute.method === method &&
-      existRoute.pattern === pattern &&
-      deepEqual(routeConstraints, constraints)
-    ) {
+    if (deepEqual(routeConstraints, constraints)) {
       throw new Error(`Method '${method}' already declared for route '${pattern}' with constraints '${JSON.stringify(constraints)}'`)
     }
   }
 
   const route = { method, path, pattern, params, opts, handler, store }
   this.routes.push(route)
+  patternRoutes.push(route)
   currentNode.addRoute(route, this.constrainer)
 }
 
@@ -477,6 +484,7 @@ Router.prototype.reset = function reset () {
   this.trees = Object.create(null)
   this._treeGET = null
   this.routes = []
+  this._routesByPattern = new Map()
 }
 
 Router.prototype.off = function off (method, path, constraints) {
